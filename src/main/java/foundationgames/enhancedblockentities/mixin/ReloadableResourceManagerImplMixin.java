@@ -18,25 +18,44 @@ import java.util.concurrent.Executor;
 
 @Mixin(ReloadableResourceManagerImpl.class)
 public abstract class ReloadableResourceManagerImplMixin {
-    @Shadow public abstract void addPack(ResourcePack resourcePack);
+    @Shadow
+    LifecycledResourceManager activeManager;
 
-    @ModifyVariable(method = "reload", at = @At("HEAD"), index = 4)
-    private List<ResourcePack> enhanced_bes$injectRRP(List<ResourcePack> old) {
+    @ModifyVariable(method = "reload", at = @At("HEAD"))
+    private List<ResourcePack> enhanced_bes$injectResourcePacks(List<ResourcePack> packs) {
+        ResourceUtil.resetExperimentalPack();
+
         ImmutableList.Builder<ResourcePack> builder = ImmutableList.builder();
-        for (ResourcePack pack : old) {
-            builder.add(pack);
-            if (pack instanceof DefaultResourcePack) {
-                builder.add(ResourceUtil.getPack());
-            }
-        }
+        builder.addAll(packs);
+        builder.add(ResourceUtil.getPack(), ResourceUtil.getExperimentalPack());
 
         return builder.build();
     }
 
-    @Inject(method = "reload", at = @At(value = "RETURN", shift = At.Shift.BEFORE))
-    private void enhanced_bes$injectAndSetupExperimentalPack(Executor prepareExecutor, Executor applyExecutor, CompletableFuture<Unit> initialStage, List<ResourcePack> packs, CallbackInfoReturnable<ResourceReload> cir) {
-        ExperimentalSetup.cacheResources((ResourceManager) this);
+    @Inject(method = "reload", at = @At("TAIL"))
+    private void enhanced_bes$injectAndSetupExperimentalPack(Executor prepareExecutor,
+                                                             Executor applyExecutor,
+                                                             CompletableFuture<Unit> initialStage,
+                                                             List<ResourcePack> packs,
+                                                             CallbackInfoReturnable<ResourceReload> callbackInfoReturnable) {
+        ExperimentalSetup.cacheResourceManager(activeManager);
         ExperimentalSetup.setup();
-        this.addPack(ResourceUtil.getExperimentalPack());
+
+        refreshNamespaces(activeManager);
+    }
+
+    private void refreshNamespaces(LifecycledResourceManager lifecycledResourceManager) {
+        var lifecycledResourceManagerMixin = (LifecycledResourceManagerImplMixin)lifecycledResourceManager;
+
+        for (var pack : lifecycledResourceManagerMixin.getPacks()) {
+            for (var str : pack.getNamespaces(ResourceType.CLIENT_RESOURCES)) {
+                var namespace = lifecycledResourceManagerMixin.getSubManagers()
+                        .computeIfAbsent(str, ns -> new NamespaceResourceManager(ResourceType.CLIENT_RESOURCES, ns));
+
+                if (namespace.streamResourcePacks().noneMatch(p -> p == pack)) {
+                    namespace.addPack(pack);
+                }
+            }
+        }
     }
 }

@@ -18,7 +18,7 @@ public interface ModelStateHolder {
             WorldUtil.FORCE_SYNCHRONOUS_CHUNK_REBUILD = true;
             MinecraftClient.getInstance().worldRenderer.updateBlock(world, pos, bState, bState, 8);
         } catch (NullPointerException ignored) {
-            EnhancedBlockEntities.LOG.warn("Error rebuilding chunk at block pos "+pos);
+            EnhancedBlockEntities.LOG.warn("Error rebuilding chunk at block pos " + pos);
         }
     }
 }

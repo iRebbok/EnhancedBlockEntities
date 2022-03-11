@@ -40,10 +40,11 @@ dependencies {
 	// Mod Menu because config screen access from another place
 	modApi "com.terraformersmc:modmenu:${project.modmenu_version}"
 
+	// go away stinky
 	// no more load time
-	modRuntime("supercoder79:databreaker:0.2.8") {
-		exclude module: "fabric-loader"
-	}
+	//modRuntimeOnly("supercoder79:databreaker:0.2.8") {
+	//	exclude module: "fabric-loader"
+	//}
 }
 
 processResources {

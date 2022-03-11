@@ -3,19 +3,28 @@ package foundationgames.enhancedblockentities.util.hacks;
 import foundationgames.enhancedblockentities.client.resource.ExperimentalResourcePack;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.util.Identifier;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.io.InputStream;
 
 public enum ResourceHacks {;
+    private static final Logger LOGGER = LogManager.getLogger();
+
     private static void cropAndPutTexture(Identifier source, Identifier result, ResourceManager manager, ExperimentalResourcePack pack, float u0, float v0, float u1, float v1) throws IOException {
         InputStream image;
         try {
             image = manager.getResource(source).getInputStream();
         } catch (IOException e) {
+            LOGGER.error(e);
             return;
         }
-        if (image == null) return;
+
+        if (image == null) {
+            LOGGER.error("cropAndPutTexture: image somehow turned null");
+            return;
+        }
 
         pack.put(result, TextureHacks.cropImage(image, u0, v0, u1, v1));
         image.close();
